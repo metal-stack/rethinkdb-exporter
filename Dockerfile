@@ -1,12 +1,11 @@
-FROM golang:1.14.0 as build
+FROM golang:1.19-bullseye as build
 
 COPY . /src
 RUN set -ex \
     && cd /src \
     && CGO_ENABLED=0 go build -o /bin/prometheus-exporter
 
-FROM alpine:latest
-MAINTAINER CMogilko <cmogilko@gmail.com>
+FROM alpine:3.17
 
 COPY --from=build /bin/prometheus-exporter /bin/prometheus-exporter
 
