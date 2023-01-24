@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 // PrepareTLSConfig creates tls.Config with certificate files
@@ -19,16 +19,16 @@ func PrepareTLSConfig(caFile, certFile, keyFile string) (*tls.Config, error) {
 
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
-			return nil, fmt.Errorf("TLS file load error: %v", err)
+			return nil, fmt.Errorf("TLS file load error: %w", err)
 		}
 
 		config.Certificates = []tls.Certificate{cert}
 	}
 
 	if len(caFile) != 0 {
-		ca, err := ioutil.ReadFile(caFile)
+		ca, err := os.ReadFile(caFile)
 		if err != nil {
-			return nil, fmt.Errorf("TLS CA file load error: %v", err)
+			return nil, fmt.Errorf("TLS CA file load error: %w", err)
 		}
 
 		cp := x509.NewCertPool()
