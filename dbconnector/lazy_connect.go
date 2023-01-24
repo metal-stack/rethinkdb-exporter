@@ -3,6 +3,7 @@ package dbconnector
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"sync"
 
 	"github.com/rs/zerolog/log"
@@ -80,7 +81,7 @@ func (l *LazyRethinkSession) Query(ctx context.Context, q r.Query) (*r.Cursor, e
 	}
 
 	cur, err := l.Session.Query(ctx, q)
-	if err == r.ErrConnectionClosed {
+	if errors.Is(err, r.ErrConnectionClosed) {
 		err = l.Session.Reconnect()
 		if err != nil {
 			return nil, err
@@ -100,7 +101,7 @@ func (l *LazyRethinkSession) Exec(ctx context.Context, q r.Query) error {
 	}
 
 	err := l.Session.Exec(ctx, q)
-	if err == r.ErrConnectionClosed {
+	if errors.Is(err, r.ErrConnectionClosed) {
 		err = l.Session.Reconnect()
 		if err != nil {
 			return err
