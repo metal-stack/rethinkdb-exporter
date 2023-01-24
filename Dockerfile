@@ -2,8 +2,9 @@ FROM golang:1.19-bullseye as build
 
 COPY . /src
 RUN set -ex \
-    && cd /src \
-    && CGO_ENABLED=0 go build -o /bin/prometheus-exporter
+ && cd /src \
+ && CGO_ENABLED=0 go build -o /bin/prometheus-exporter \
+ && strip /bin/prometheus-exporter
 
 FROM alpine:3.17
 
