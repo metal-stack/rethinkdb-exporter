@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"crypto/tls"
+	"errors"
+	"os"
 
 	"github.com/rethinkdb/prometheus-exporter/config"
 	"github.com/rethinkdb/prometheus-exporter/dbconnector"
@@ -117,7 +119,8 @@ func initConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var errConfigFileNotFound viper.ConfigFileNotFoundError
+		if errors.As(err, &errConfigFileNotFound) || os.IsNotExist(err) {
 			log.Fatal().Err(err).Msg("failed to read config file")
 		}
 	}

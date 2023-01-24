@@ -3,6 +3,7 @@ package exporter
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -101,6 +102,6 @@ func New(
 
 // ListenAndServe runs prometheus http-server for exporting stats
 func (e *RethinkdbExporter) ListenAndServe() error {
-	serv := http.Server{Addr: e.listenAddress, Handler: e.mux}
+	serv := http.Server{Addr: e.listenAddress, Handler: e.mux, ReadHeaderTimeout: 10 * time.Second}
 	return serv.ListenAndServe()
 }
