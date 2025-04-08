@@ -1,4 +1,4 @@
-FROM golang:1.22-bookworm as build
+FROM golang:1.24-bookworm as build
 
 COPY . /src
 RUN set -ex \
@@ -6,8 +6,7 @@ RUN set -ex \
  && CGO_ENABLED=0 go build -o /bin/prometheus-exporter \
  && strip /bin/prometheus-exporter
 
-FROM alpine:3.19
-
+FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=build /bin/prometheus-exporter /bin/prometheus-exporter
 
 USER nobody

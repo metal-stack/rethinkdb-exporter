@@ -62,7 +62,7 @@ func (l *LazyRethinkSession) IsConnected() bool {
 
 	is := l.Session.IsConnected()
 	if !is {
-		err := l.Session.Reconnect()
+		err := l.Reconnect()
 		if err != nil {
 			return false
 		}
@@ -82,7 +82,7 @@ func (l *LazyRethinkSession) Query(ctx context.Context, q r.Query) (*r.Cursor, e
 
 	cur, err := l.Session.Query(ctx, q)
 	if errors.Is(err, r.ErrConnectionClosed) {
-		err = l.Session.Reconnect()
+		err = l.Reconnect()
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (l *LazyRethinkSession) Exec(ctx context.Context, q r.Query) error {
 
 	err := l.Session.Exec(ctx, q)
 	if errors.Is(err, r.ErrConnectionClosed) {
-		err = l.Session.Reconnect()
+		err = l.Reconnect()
 		if err != nil {
 			return err
 		}
