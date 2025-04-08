@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
@@ -23,7 +22,7 @@ func (e *RethinkdbExporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(e.metrics.scrapeErrors, prometheus.GaugeValue, float64(errcount))
 	ch <- prometheus.MustNewConstMetric(e.metrics.scrapeLatency, prometheus.GaugeValue, elapsed.Seconds())
 
-	log.Debug().Dur("duration", elapsed).Msg("collect finished")
+	e.log.Debug("collect finished", "duration", elapsed)
 }
 
 func (e *RethinkdbExporter) collectRethinkStats(ctx context.Context, ch chan<- prometheus.Metric) int {
@@ -31,19 +30,19 @@ func (e *RethinkdbExporter) collectRethinkStats(ctx context.Context, ch chan<- p
 
 	cur, err := r.DB(r.SystemDatabase).Table(r.StatsSystemTable).Run(e.rconn, r.RunOpts{Context: ctx})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to query system stats table")
+		e.log.Error("failed to query system stats table", "error", err)
 		errcount++
 		return errcount
 	}
 	defer func() {
 		err := cur.Close()
 		if err != nil {
-			log.Warn().Err(err).Msg("error while closing cursor")
+			e.log.Warn("error while closing cursor", "error", err)
 		}
 	}()
 
 	if cur.Err() != nil {
-		log.Error().Err(cur.Err()).Msg("query error from cursor")
+		e.log.Error("query error from cursor", "error", err)
 		errcount++
 		return errcount
 	}
@@ -52,20 +51,20 @@ func (e *RethinkdbExporter) collectRethinkStats(ctx context.Context, ch chan<- p
 	var stat stat
 	for cur.Next(&stat) {
 		if cur.Err() != nil {
-			log.Error().Err(cur.Err()).Msg("query error from cursor")
+			e.log.Error("query error from cursor", "error", err)
 			errcount++
 			return errcount
 		}
 
 		err = e.processStat(ctx, stat, wg, ch)
 		if err != nil {
-			log.Warn().Err(err).Msg("error while processing stat")
+			e.log.Warn("error while processing stat", "error", err)
 			errcount++
 		}
 	}
 	err = wg.Wait()
 	if err != nil {
-		log.Warn().Err(err).Msg("error while processing stat")
+		e.log.Warn("error while processing stat", "error", err)
 		errcount++
 	}
 
@@ -152,7 +151,7 @@ func (e *RethinkdbExporter) processTableStat(ctx context.Context, stat stat, wg 
 			var info info
 			err := r.DB(dbName).Table(tableName).Info().ReadOne(&info, e.rconn, r.RunOpts{Context: ctx})
 			if err != nil {
-				log.Warn().Err(err).Str("db", dbName).Str("table", tableName).Msg("failed to get table info")
+				e.log.Warn("failed to get table info", "db", dbName, "table", tableName, "error", err)
 				return err
 			}
 

@@ -1,13 +1,14 @@
 package main
 
 import (
+	"log"
+
 	"github.com/rethinkdb/prometheus-exporter/cmd"
-	"github.com/rs/zerolog/log"
 )
 
 func main() {
 	err := cmd.Execute()
 	if err != nil {
-		log.Fatal().Err(err).Msg("unhandled error")
+		log.Fatalf("error starting rethinkdb exporter: %v", err)
 	}
 }

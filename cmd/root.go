@@ -3,24 +3,27 @@ package cmd
 import (
 	"crypto/tls"
 	"errors"
+	"log/slog"
+	"os"
 
 	"github.com/rethinkdb/prometheus-exporter/config"
 	"github.com/rethinkdb/prometheus-exporter/dbconnector"
 	"github.com/rethinkdb/prometheus-exporter/exporter"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var cfg config.Config
+var (
+	cfgFile string
+	cfg     config.Config
+	log     *slog.Logger
+)
 
 var rootCmd = &cobra.Command{
 	Use:   "prometheus-exporter",
 	Short: "Rethinkdb statistics exporter to prometheus",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		initLogging(cfg)
+		log = initLogging(cfg)
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var tlsConfig *tls.Config
@@ -28,11 +31,13 @@ var rootCmd = &cobra.Command{
 		if cfg.DB.EnableTLS {
 			tlsConfig, err = dbconnector.PrepareTLSConfig(cfg.DB.CAFile, cfg.DB.CertificateFile, cfg.DB.KeyFile)
 			if err != nil {
-				log.Fatal().Err(err).Msg("failed to read tls credentials")
+				log.Error("failed to read tls credentials", "error", err)
+				os.Exit(1)
 			}
 		}
 
 		rconn := dbconnector.ConnectRethinkDB(
+			log,
 			cfg.DB.RethinkdbAddresses,
 			cfg.DB.Username,
 			cfg.DB.Password,
@@ -40,15 +45,17 @@ var rootCmd = &cobra.Command{
 			cfg.DB.ConnectionPoolSize,
 		)
 
-		exp, err := exporter.New(cfg.Web.ListenAddress, cfg.Web.TelemetryPath, rconn, cfg.Stats.TableDocsEstimates)
+		exp, err := exporter.New(log, cfg.Web.ListenAddress, cfg.Web.TelemetryPath, rconn, cfg.Stats.TableDocsEstimates)
 		if err != nil {
-			log.Fatal().Err(err).Msg("failed to init http exporter")
+			log.Error("failed to init http exporter", "error", err)
+			os.Exit(1)
 		}
 
-		log.Info().Str("address", cfg.Web.ListenAddress).Msg("listening on address")
+		log.Info("listening on address", "address", cfg.Web.ListenAddress)
 		err = exp.ListenAndServe()
 		if err != nil {
-			log.Fatal().Err(err).Msg("failed to serve http exporter")
+			log.Error("failed to serve http exporter", "error", err)
+			os.Exit(1)
 		}
 	},
 }
@@ -120,25 +127,21 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		var errConfigFileNotFound viper.ConfigFileNotFoundError
 		if !errors.As(err, &errConfigFileNotFound) {
-			log.Fatal().Err(err).Msg("failed to read config file")
+			log.Error("failed to read config file", "error", err)
+			os.Exit(1)
 		}
 	}
 	if err := viper.Unmarshal(&cfg); err != nil {
-		log.Fatal().Err(err).Msg("failed to parse config")
+		log.Error("failed to parse config", "error", err)
+		os.Exit(1)
 	}
 }
 
-func initLogging(cfg config.Config) {
-	if !cfg.Log.JSONOutput {
-		log.Logger = log.Output(zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-			w.TimeFormat = "2006-01-02T15:04:05 MST"
-		}))
-	}
+func initLogging(cfg config.Config) *slog.Logger {
+	level := slog.LevelInfo
 	if cfg.Log.Debug {
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-	} else {
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		level = slog.LevelDebug
 	}
 
-	log.Logger = log.With().Caller().Logger()
+	return slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
 }

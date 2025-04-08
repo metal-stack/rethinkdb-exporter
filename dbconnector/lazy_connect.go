@@ -4,15 +4,16 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"log/slog"
 	"sync"
 
-	"github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
 // ConnectRethinkDB establishes lazy rethinkdb connection
 // It will make attempt to connect with first call and reconnect after every error
 func ConnectRethinkDB(
+	log *slog.Logger,
 	addresses []string,
 	username, password string,
 	tlsConfig *tls.Config,
@@ -21,6 +22,7 @@ func ConnectRethinkDB(
 	const systemDatabase = "rethinkdb"
 
 	return &LazyRethinkSession{
+		log: log,
 		opts: r.ConnectOpts{
 			Addresses: addresses,
 			Database:  systemDatabase,
@@ -38,6 +40,7 @@ func ConnectRethinkDB(
 type LazyRethinkSession struct {
 	*r.Session
 
+	log  *slog.Logger
 	opts r.ConnectOpts
 	m    sync.Mutex
 }
@@ -55,7 +58,7 @@ func (l *LazyRethinkSession) IsConnected() bool {
 	if l.Session == nil {
 		err := l.connect()
 		if err != nil {
-			log.Warn().Err(err).Msg("failed to connect to rethinkdb")
+			l.log.Error("failed to connect to rethinkdb", "error", err)
 			return false
 		}
 	}
