@@ -41,8 +41,6 @@ type Config struct {
 
 	// Log defines exporter's logging
 	Log struct {
-		// JSONOutput enables output in json-format, use for structured logging
-		JSONOutput bool `mapstructure:"json_output"`
 		// Debug enables more logs for debugging
 		Debug bool `mapstructure:"debug"`
 	} `mapstructure:"log"`

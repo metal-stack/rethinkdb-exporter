@@ -2,13 +2,13 @@ package exporter
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/version"
-	"github.com/rs/zerolog/log"
 	r "gopkg.in/rethinkdb/rethinkdb-go.v6"
 )
 
@@ -21,6 +21,7 @@ type RethinkdbExporter struct {
 	listenAddress string
 	mux           *http.ServeMux
 
+	log     *slog.Logger
 	metrics struct {
 		clusterClientConnections *prometheus.Desc
 		clusterDocsPerSecond     *prometheus.Desc
@@ -42,14 +43,17 @@ type RethinkdbExporter struct {
 	}
 }
 
-type promHTTPLogger struct{}
+type promHTTPLogger struct {
+	log *slog.Logger
+}
 
 func (l promHTTPLogger) Println(v ...interface{}) {
-	log.Error().Msgf("msg: %v", fmt.Sprint(v...))
+	l.log.Error("promhttp", "msg", fmt.Sprint(v...))
 }
 
 // New creates a new instance of prometheus rethinkdb exporter
 func New(
+	log *slog.Logger,
 	listenAddress string,
 	telemetryPath string,
 	rconn r.QueryExecutor,
@@ -59,6 +63,7 @@ func New(
 		listenAddress:     listenAddress,
 		collectTableStats: collectTableStats,
 		rconn:             rconn,
+		log:               log,
 	}
 
 	exporter.initMetrics()
@@ -72,7 +77,7 @@ func New(
 			promhttp.HandlerFor(
 				prometheus.DefaultGatherer,
 				promhttp.HandlerOpts{
-					ErrorLog: &promHTTPLogger{},
+					ErrorLog: &promHTTPLogger{log: log},
 				},
 			),
 		),
