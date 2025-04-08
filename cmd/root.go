@@ -18,7 +18,7 @@ var cfg config.Config
 
 var rootCmd = &cobra.Command{
 	Use:   "prometheus-exporter",
-	Short: "Rethinkdb statictics exporter to prometheus",
+	Short: "Rethinkdb statistics exporter to prometheus",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		initLogging(cfg)
 	},
