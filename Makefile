@@ -1,6 +1,6 @@
 build:
 	mkdir -p bin
-	go build -o bin/rethinkdb-exporter
+	CGO_ENABLED=0 go build -o bin/rethinkdb-exporter
 	strip bin/rethinkdb-exporter
 
 lint:
