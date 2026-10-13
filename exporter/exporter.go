@@ -47,7 +47,7 @@ type promHTTPLogger struct {
 	log *slog.Logger
 }
 
-func (l promHTTPLogger) Println(v ...interface{}) {
+func (l promHTTPLogger) Println(v ...any) {
 	l.log.Error("promhttp", "msg", fmt.Sprint(v...))
 }
 

@@ -1,6 +1,7 @@
 build:
-	go build -o rethinkdb-exporter
-	strip rethinkdb-exporter
+	mkdir -p bin
+	go build -o bin/rethinkdb-exporter
+	strip bin/rethinkdb-exporter
 
 lint:
 	goimports -w .
